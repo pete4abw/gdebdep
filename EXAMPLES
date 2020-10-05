@@ -1,0 +1,18 @@
+Some Examples
+
+gdebdep debian-package_version_suffix.deb
+
+will create a subdirectory debian-package and place an lftp command file there.
+
+cd debian-package
+lftp -f lftp
+
+will download all dependencies captured.
+
+# fetch multiple packages from a debian-package directory
+$ for i in `ls debian-package\*.deb`; do gdebdep $i; done
+
+will create lftp command files in subdirectories for all deb packages found in debian-package
+
+Peter Hyman
+pete@peterhyman.com

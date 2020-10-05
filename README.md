@@ -71,3 +71,7 @@ By downloading Debian's libcurl4 and its dependencies, this problem is averted.
 
 ## Not all packages required
 Some, but maybe not all package dependencies are required (e.g. `gcc`, `libc6`, `debconf`, etc.. Using `ldd library-name`, one may identify other libraries and packages needed. A particular Debian library can be associated with a package by searching: `https://www.debian.org/distrib/packages#search_packages`.
+
+Peter Hyman
+pete@peterhyman.com
+October 2020
