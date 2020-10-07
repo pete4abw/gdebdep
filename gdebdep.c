@@ -8,6 +8,8 @@
  * Some code and inspiration from strtok man page
 */
 
+char *VERSION = "0.1";
+char *programname = "gdebdep";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,10 +39,24 @@ struct Ftp {
 */
 int getconf() {
 	FILE *conffile;
-	char *conffilename="gdebdep.conf";
-	char *ret, *value;
+	char *conffilename;
+	char *ret, *value, *home=getenv("HOME");
+
+	conffilename = malloc(strlen(home)+strlen(programname)+7); // include .conf extension plus 2 slashes
+
+	strcpy(conffilename,programname);
+	strcat(conffilename,".conf");
 
 	conffile=fopen(conffilename,"r");
+	if (conffile == NULL) {
+		sprintf(conffilename, "%s/.%s/%s.conf",home,programname,programname);
+		conffile=fopen(conffilename,"r");
+		if (conffile == NULL) {
+			fprintf(stderr,"Configuration file %s not found\n", conffilename);
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	while(fgets(lineinput, sizeof(lineinput), conffile)) {
 		if (lineinput[0] == '#' || lineinput[0] == ' ' || lineinput[0] == '\0')
 			continue;
@@ -60,7 +76,7 @@ int getconf() {
 		else if (!strcasecmp(ret, "ARCH"))
 			strcpy(ftpvars.ftparch, value);
 		else {
-			fprintf(stderr, "Bad Parameter, %s, in gdebdep.conf file\n", ret);
+			fprintf(stderr, "Bad Parameter, %s, in %s file\n", ret,conffilename);
 			return 1;
 		}
 
@@ -138,6 +154,18 @@ char *returndllocation(char package[]) {
 	return dllocation;
 }
 
+void usage() {
+	char *home = getenv("HOME");
+	fprintf(stdout, "%s - get Debian package dependencies\n\
+\tVersion %s\n\
+\t(c) Peter Hyman 2020\n\n\
+\tUsage: %s - Debian-package-file.deb\n\
+\t       %s -h.....show this help\n\
+\tConf file: %s.conf - must be in current directory or %s\n",
+			programname, VERSION, programname, programname, programname, home);
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
 	char command[256];
@@ -148,18 +176,14 @@ int main(int argc, char *argv[])
 	FILE *control;
 	struct stat filestat;
 
-        if (argc != 2) {
-        	fprintf(stderr, "Usage: %s Debian package file\n",
-			argv[0]);
- 		exit(EXIT_FAILURE);
-	}
+        if (argc != 2 || !strcmp(argv[1], "-h"))
+		usage();
 
 	/* check conf file */
 	if (getconf()) {
 		fprintf(stderr, "Configuration file %s not found\n");
 		exit(EXIT_FAILURE);
 	}
-
 
 	/* check Debian deb file */
 	if (stat(argv[1], &filestat) == -1) {

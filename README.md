@@ -3,6 +3,7 @@ Get Debian Dependencies -- for non-Debian Systems
 
 ## Synopsis
 **gdebdep** *debian_package.deb*
+**gdebdep** *-h* - show help
 
 ## Description
 
@@ -11,8 +12,9 @@ Get Debian Dependencies -- for non-Debian Systems
 * Extract **control** file from target Debian package
 * Identify all dependencies from **Depends:** line of control including those with an **OR** dependency.
   e.g. `Depends: package1 | package 2`
+  If a dependent package is not found (i.e. it's an earlier version), it will not be searched.
 * Obtain download locations from FTP mirror
-* write and `lftp` command file in a subdirectory off $PWD to download all depdent .deb files
+* write an `lftp` command file in a subdirectory under `$PWD` to download all depdent .deb files
 
 Execute `lftp -f lftp` to download all dependencies in a given directory
 
@@ -28,10 +30,13 @@ PACKAGELISTDIR=*directory to fetch Packages.xz from, ending with* **/binary-** (
 PACKAGEFILENAME=*Packages.xz*
 ```
 
+**gdebdep.conf** can reside in the current directory or in `$HOME/.gdebdep/`
+
 ## Output
 Under execution directory, a subdirectory with the basename of the Debian Package will be created. The `lftp` command file will reside there.
 e.g. The target Debian deb package is `iproute2_4.20.0-2_amd64.deb`. The directory create will be **`iproute2`**.
-## lftp file resembles
+
+## Example lftp file
 ```
 open ftp.us.debian.org
 cd debian
