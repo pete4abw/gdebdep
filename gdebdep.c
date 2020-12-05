@@ -27,11 +27,11 @@ struct Package {
 } *packageDependencies = NULL, *packageList = NULL;
 
 struct Ftp {
-	char ftpmirror[64];
-	char ftpdebiandir[64];
-	char ftppkglistdir[64];
-	char ftppkgname[16];
-	char ftparch[16];
+	char ftpMirror[64];
+	char ftpDebiandir[64];
+	char ftpPkglistdir[64];
+	char ftpPackagesname[16];
+	char ftpArch[16];
 } ftpvars;
 
 /* Retrieve configuration variables
@@ -66,22 +66,22 @@ int getconf() {
 			continue;
 		value=strtok(NULL, " =");
 		if (!strcasecmp(ret, "MIRROR"))
-			strcpy(ftpvars.ftpmirror, value);
+			strcpy(ftpvars.ftpMirror, value);
 		else if (!strcasecmp(ret, "DEBIANDIR"))
-			strcpy(ftpvars.ftpdebiandir, value);
+			strcpy(ftpvars.ftpDebiandir, value);
 		else if (!strcasecmp(ret, "PACKAGELISTDIR"))
-			strcpy(ftpvars.ftppkglistdir, value);
+			strcpy(ftpvars.ftpPkglistdir, value);
 		else if (!strcasecmp(ret, "PACKAGEFILENAME"))
-			strcpy(ftpvars.ftppkgname, value);
+			strcpy(ftpvars.ftpPackagesname, value);
 		else if (!strcasecmp(ret, "ARCH"))
-			strcpy(ftpvars.ftparch, value);
+			strcpy(ftpvars.ftpArch, value);
 		else {
 			fprintf(stderr, "Bad Parameter, %s, in %s file\n", ret,conffilename);
 			return 1;
 		}
 
 	}
-	strcat(ftpvars.ftppkglistdir, ftpvars.ftparch);
+	strcat(ftpvars.ftpPkglistdir, ftpvars.ftpArch);
 	fclose(conffile);
 	return 0;
 }
@@ -93,7 +93,7 @@ void load_packages() {
 	char *buffer;
 	int count = 0;
 
-	packages=fopen("Packages","r");
+	packages=fopen(ftpvars.ftpPackagesname,"r");
 	if (!packages) {
 		fprintf(stderr, "Error: %s packages file not found\n");
 		exit(EXIT_FAILURE);
@@ -159,7 +159,7 @@ void usage() {
 	fprintf(stdout, "%s - get Debian package dependencies\n\
 \tVersion %s\n\
 \t(c) Peter Hyman 2020\n\n\
-\tUsage: %s - Debian-package-file.deb\n\
+\tUsage: %s Debian-package-file.deb\n\
 \t       %s -h.....show this help\n\
 \tConf file: %s.conf - must be in current directory or %s\n",
 			programname, VERSION, programname, programname, programname, home);
@@ -209,24 +209,29 @@ int main(int argc, char *argv[])
 
 	strcpy(packageroot, ret);
 
+	// if any error or file directory already exists, then abort.
 	if (mkdir(packageroot, 0755) == -1) {
-		if (errno != EEXIST) {
-			fprintf(stderr, "Error creating directory %s\n", packageroot);
-			exit(EXIT_FAILURE);
-		}
+		fprintf(stderr, "Error creating directory %s\n", packageroot);
+		if (errno == EEXIST)
+			fprintf(stderr, "Directory already exists\n");
+		exit(EXIT_FAILURE);
 	}
 
 	// Build system command
 	// to get and extract control file
-	// wget mirror/debiandir/packagelistdir/packafilename
+	// wget mirror/debiandir/packagelistdir/packagefilename
 	// ar p filename control.tar.xz | tar -xJf - ./control
 	// get Packages file if not here
-	if (stat(ftpvars.ftppkgname, &filestat) == -1) {
-		sprintf(command, "wget %s/%s/%s/%s", ftpvars.ftpmirror,ftpvars.ftpdebiandir,ftpvars.ftppkglistdir,ftpvars.ftppkgname);
-		system(command);
+	if (stat(ftpvars.ftpPackagesname, &filestat) == -1) {
+		sprintf(command, "wget %s/%s/%s/%s", ftpvars.ftpMirror,ftpvars.ftpDebiandir,ftpvars.ftpPkglistdir,ftpvars.ftpPackagesname);
+		// if error fetching Packages file, abort
+		if (system(command)) {
+			fprintf(stderr, "Error in wget %s\n", ftpvars.ftpPackagesname);
+			exit(EXIT_FAILURE);
+		}
 	}
 	// extract Packages
-	sprintf(command, "xz -dk %s", ftpvars.ftppkgname);
+	sprintf(command, "xz -dk %s", ftpvars.ftpPackagesname);
 	system(command);
 
 	sprintf(command, "ar p %s control.tar.xz | tar -xJf - ./control", debianpackagename);
@@ -361,8 +366,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Cannot open lftp file");
 		exit(EXIT_FAILURE);
 	}
-	fprintf(lftp,"open %s\n", ftpvars.ftpmirror);
-	fprintf(lftp,"cd %s\n", ftpvars.ftpdebiandir);
+	fprintf(lftp,"open %s\n", ftpvars.ftpMirror);
+	fprintf(lftp,"cd %s\n", ftpvars.ftpDebiandir);
 
 	for (curNode = packageDependencies; curNode != NULL; curNode = curNode->nextNode) {
 		// if no dllocation found, continue
